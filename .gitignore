@@ -1,0 +1,31 @@
+# ---- 機密：絕不進版控 ----
+config.json
+**/config.json
+*.key
+.env
+.env.*
+*credentials*
+*token*.txt
+
+# ---- 執行產物 ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---- 產出素材（體積大，不進倉）----
+output/
+*.mp4
+*.mov
+*.wav
+*-thumb.jpg
+*_subject_check.jpg
+*mouth-strip.jpg
+*_finish.json
+
+# ---- 系統 ----
+.DS_Store
+Thumbs.db
+*.bak
+*.bak-*
+.idea/
+.vscode/

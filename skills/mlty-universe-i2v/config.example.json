@@ -1,0 +1,30 @@
+{
+  "_comment": "複製此檔為 config.json 並填入你自己的 API key。config.json 已被 .gitignore 排除，不會進版控。",
+  "_get_key": "前往 https://kie.ai 註冊取得 API key（三個 model 可共用同一把帳號 key）",
+
+  "KIE_API_BASE": "https://api.kie.ai",
+  "KIE_UPLOAD_BASE": "https://kieai.redpandaai.co",
+
+  "MODELS": {
+    "kling": {
+      "api_key": "<YOUR_API_KEY>",
+      "model_id": "kling-3.0/video"
+    },
+    "omni-reference": {
+      "api_key": "<YOUR_API_KEY>"
+    },
+    "omni-image": {
+      "api_key": "<YOUR_API_KEY>",
+      "note": "omni-image 與 omni-reference 使用同一把帳號 key（模型級授權）"
+    }
+  },
+
+  "DEFAULTS": {
+    "aspect_ratio": "16:9",
+    "mode": "pro",
+    "audio": false,
+    "resolution": "1080p"
+  },
+
+  "_env_override": "也可用環境變數覆寫，優先於此檔：KIE_KLING_KEY / KIE_OMNI_REF_KEY / KIE_OMNI_IMAGE_KEY"
+}
