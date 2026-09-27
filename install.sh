@@ -14,7 +14,26 @@
 
 set -euo pipefail
 
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/skills"
+REPO_URL="${REPO_URL:-https://github.com/lungcheong-creator/emotion-performance-i2v.git}"
+
+# 決定來源：本地 repo 目錄，或（被 curl | bash 呼叫時）先 clone 到暫存
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo .)/skills"
+TMP_CLONE=""
+if [[ ! -d "$SRC_DIR" ]]; then
+  echo "找不到本地 skills/（可能透過 curl 執行）→ 從 GitHub 取得…"
+  TMP_CLONE="$(mktemp -d)"
+  if ! git clone --depth 1 "$REPO_URL" "$TMP_CLONE/repo" >/dev/null 2>&1; then
+    echo "✗ git clone 失敗：$REPO_URL" >&2
+    echo "  請確認已安裝 git 且網路可達。" >&2
+    rm -rf "$TMP_CLONE"
+    exit 1
+  fi
+  SRC_DIR="$TMP_CLONE/repo/skills"
+  echo "✓ 已取得（暫存於 ${TMP_CLONE}，安裝後自動清除）"
+fi
+cleanup() { [[ -n "$TMP_CLONE" ]] && rm -rf "$TMP_CLONE"; }
+trap cleanup EXIT
+
 PLATFORM=""
 DEST=""
 FORCE=0
@@ -60,7 +79,7 @@ mkdir -p "$DEST"
 # ---- 複製 ----
 for s in emotion-performance-i2v mlty-universe-i2v; do
   if [[ ! -d "$SRC_DIR/$s" ]]; then
-    echo "✗ 來源缺少 $s，跳過" >&2
+    echo "✗ 來源缺少 ${s}，跳過" >&2
     continue
   fi
   if [[ -e "$DEST/$s" && $FORCE -eq 0 ]]; then

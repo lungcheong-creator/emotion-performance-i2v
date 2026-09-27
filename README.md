@@ -29,6 +29,15 @@
 
 需要 **Python 3.9+**、**ffmpeg**，以及一個 [kie.ai](https://kie.ai) API key。
 
+**一行安裝（免 clone）**：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lungcheong-creator/emotion-performance-i2v/main/install.sh \
+  | bash -s -- --platform codex --deps
+```
+
+**或先 clone 再裝**（想看原始碼、想改）：
+
 ```bash
 git clone https://github.com/lungcheong-creator/emotion-performance-i2v.git
 cd emotion-performance-i2v
