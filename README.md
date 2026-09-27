@@ -29,6 +29,11 @@
 
 需要 **Python 3.9+**、**ffmpeg**，以及一個 [kie.ai](https://kie.ai) API key。
 
+> ⚠️ **opencv 請用 4.x**：`pip install "opencv-python-headless>=4.5,<5"`
+> OpenCV 5.0 移除了 Haar 級聯 API（`cv2.CascadeClassifier`），會讓臉部偵測失效。
+> `install.sh --deps` 已自動鎖定版本。程式碼也做了降級處理——偵測不到 API 會退回膚色法並在讀數裡警告，
+> 但**精準度會下降**（暖色調場景可能框錯主體）。
+
 **一行安裝（免 clone）**：
 
 ```bash

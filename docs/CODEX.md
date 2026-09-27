@@ -58,13 +58,19 @@ export KIE_OMNI_REF_KEY=xxx
 ## 3 · 依賴
 
 ```bash
-python3 -m pip install pillow numpy opencv-python-headless
+python3 -m pip install pillow numpy
+python3 -m pip install "opencv-python-headless>=4.5,<5"   # ⚠️ 必須 4.x，見下
 brew install ffmpeg          # macOS
 # sudo apt install ffmpeg    # Ubuntu
 ```
 
-`opencv-python-headless` 是**強烈建議而非必要**——沒有它，主體偵測會退回膚色法，
-在**暖色調場景（駝色衣物、石牆、落葉）會框錯主體**（實測踩過，見下方「已知陷阱」）。
+**`opencv-python-headless` 必須是 4.x。** OpenCV 5.0 移除了 Haar 級聯 API
+（`cv2.CascadeClassifier`），會讓臉部偵測失效。**不要**用 `pip install opencv-python-headless`
+而不指定版本——它現在會裝 5.x。`install.sh --deps` 已鎖定。
+
+`opencv` 本身是**強烈建議而非必要**——沒有它（或版本不對），主體偵測會退回膚色法，
+在**暖色調場景（駝色衣物、石牆、落葉）會框錯主體**（實測踩過）。
+程式碼已做降級處理：偵測不到 API 不會崩潰，會退回膚色法並在讀數輸出裡警告。
 
 ---
 
@@ -131,10 +137,12 @@ Codex 的 `AGENTS.md` 是全域指引。加上這一段，agent 就會知道這�
 
 | 症狀 | 原因 | 處理 |
 |---|---|---|
+| `AttributeError: module 'cv2' has no attribute 'CascadeClassifier'` | pip 裝到 **opencv 5.x**，該版本移除了 Haar 級聯 API | `pip install "opencv-python-headless>=4.5,<5"`。程式碼已降級處理不會再崩潰，但精準度會降 |
 | `subprocess` 找不到 `ffmpeg` | Codex 的 shell 環境與登入 shell 不同 | 已改為自動解析（環境變數 → PATH → 常見路徑）。仍失敗就 `export FFMPEG=/path/to/ffmpeg` |
 | `ModuleNotFoundError: PIL / numpy` | 用到系統 python3 而非裝了依賴的環境 | `export PY=/path/to/your/venv/bin/python` |
-| 暖色調人像框錯主體 | 沒有 `cv2`，退回膚色法 | `pip install opencv-python-headless`，或開 `*_subject_check.jpg` 人眼確認 |
+| 暖色調人像框錯主體 | 沒有可用的 `cv2`，退回膚色法 | 安裝/修正 opencv 版本，或開 `*_subject_check.jpg` 人眼確認 |
 | 生成後影片沒有聲音 | 對白沒寫進提示詞的引號內 | 用 `--dialogue` 參數（腳本會自動組句），並跑 `check_audio.py` |
+| bash 報 `XXX: unbound variable`（變數名多一個亂碼字） | 變數緊接中文／全形字元，bash 把 UTF-8 位元組吃進變數名 | 寫 shell 時一律用 `${VAR}` 大括號界定 |
 
 ---
 

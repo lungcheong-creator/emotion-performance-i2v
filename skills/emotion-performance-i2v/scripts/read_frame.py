@@ -367,6 +367,23 @@ def analyse(path):
         if face_h_pct is not None:
             obs.append(f"臉部偵測成功（Haar 候選 {raw.get('face_candidates')} 個，"
                        f"採最靠近中央且膚色一致者）→ 景別讀數可信")
+        if face_h_pct is None:
+            # 臉部偵測沒成功——說明是「真的沒臉」還是「環境壞了」
+            try:
+                from subject_detect import cv2_status
+                st, detail = cv2_status()
+            except Exception:  # noqa: BLE001
+                st, detail = "unavailable", "無法載入 subject_detect"
+            if st != "ok":
+                cautions.append(
+                    f"**臉部偵測不可用（{detail}）**，已退回膚色法——"
+                    "暖色調場景（駝色衣物、石牆、落葉）可能框錯主體。"
+                    "修正：`pip install 'opencv-python-headless>=4.5,<5'`"
+                    "（**不要用 5.x**，OpenCV 5.0 移除了 Haar 級聯 API）")
+            elif raw.get("source") not in (None, "none"):
+                cautions.append(
+                    "cv2 正常但這張圖偵測不到臉（側臉／背影／遠景／臉太小）→ "
+                    "已退回膚色法。務必開 `*_subject_check.jpg` 人眼確認框位")
         if not from_skin and face_h_pct is None:
             cautions.append("**沒有偵測到任何膚色連通域**，上方的框只是梯度備援推出來的——"
                             "若這張圖其實沒有人物，請改走環境敘事（`visual-analysis.md` §6 F 型），"

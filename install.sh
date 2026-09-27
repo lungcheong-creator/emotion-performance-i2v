@@ -103,8 +103,12 @@ if [[ $INSTALL_DEPS -eq 1 ]]; then
   echo
   echo "安裝 Python 依賴…"
   PY="${PY:-python3}"
-  "$PY" -m pip install --quiet --upgrade pillow numpy opencv-python-headless
-  echo "✓ 依賴安裝完成"
+  "$PY" -m pip install --quiet --upgrade pillow numpy
+  # ⚠️ opencv 必須鎖在 4.x：OpenCV 5.0 移除了 Haar 級聯 API（cv2.CascadeClassifier），
+  #    會讓 subject_detect.py 的臉部偵測失效。實測 2026-09-27 踩過——
+  #    升級到 5.0.0 後讀數流程直接 AttributeError 崩潰。
+  "$PY" -m pip install --quiet --upgrade "opencv-python-headless>=4.5,<5"
+  echo "✓ 依賴安裝完成（opencv 鎖定 4.x）"
 fi
 
 # ---- 環境檢查 ----
@@ -117,10 +121,17 @@ else
   echo "✗ 缺 Pillow / numpy  →  $PY -m pip install pillow numpy"
 fi
 if "$PY" -c "import cv2" 2>/dev/null; then
-  echo "✓ opencv（臉部偵測可用）"
+  cvver="$("$PY" -c "import cv2; print(getattr(cv2,'__version__','?'))" 2>/dev/null)"
+  if "$PY" -c "import cv2; assert hasattr(cv2,'CascadeClassifier')" 2>/dev/null; then
+    echo "✓ opencv ${cvver}（臉部偵測可用）"
+  else
+    echo "✗ opencv ${cvver} 沒有 CascadeClassifier → 臉部偵測失效"
+    echo "   原因：OpenCV 5.0 移除了 Haar 級聯 API"
+    echo "   修正：$PY -m pip install 'opencv-python-headless>=4.5,<5'"
+  fi
 else
   echo "• 無 opencv → 主體偵測會退回膚色法，暖色調場景可能框錯主體"
-  echo "   建議：$PY -m pip install opencv-python-headless"
+  echo "   建議：$PY -m pip install 'opencv-python-headless>=4.5,<5'"
 fi
 if command -v ffmpeg >/dev/null 2>&1; then
   echo "✓ ffmpeg  $(ffmpeg -version | head -1 | cut -d' ' -f1-3)"

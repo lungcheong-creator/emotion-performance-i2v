@@ -28,6 +28,7 @@
 """
 from PIL import Image
 import numpy as np
+import os
 
 # ---- 臉部偵測參數 ---------------------------------------------------------
 # Haar 對小臉不敏感，所以下限放寬到畫面高的 6%，並用兩組 cascade 取聯集。
@@ -112,11 +113,47 @@ def _blob_bbox(skin, W, H, h, w, bs, min_frac, expand_up, expand_down, expand_si
 # ---------------------------------------------------------------------------
 
 def _load_cv2():
+    """取得可用的 cv2——**必須連 Haar 級聯 API 一起驗證**。
+
+    2026-09-27 實測踩到：`pip install --upgrade opencv-python-headless` 裝到 **5.0.0**，
+    而 **OpenCV 5.0 移除了 `cv2.CascadeClassifier`**（`cv2.data/haarcascades` 也幾乎清空）。
+    只檢查 `import cv2` 會通過，但一呼叫就 `AttributeError` 炸掉整個讀數流程。
+
+    ⇒ 這裡把「裝了但 API 不相容」視同「沒有 cv2」，讓它**退回膚色法而不是崩潰**。
+    """
     try:
         import cv2  # noqa: PLC0415
-        return cv2
     except Exception:  # noqa: BLE001
         return None
+    if not hasattr(cv2, "CascadeClassifier"):
+        return None
+    if not _haar_dir(cv2):
+        return None
+    return cv2
+
+
+def _haar_dir(cv2):
+    """回傳 Haar 級聯 XML 所在目錄，取不到時回 None。"""
+    d = getattr(getattr(cv2, "data", None), "haarcascades", None)
+    if d and os.path.isdir(d):
+        return d
+    return None
+
+
+def cv2_status():
+    """診斷用：說明臉部偵測為什麼不可用。"""
+    try:
+        import cv2  # noqa: PLC0415
+    except Exception as e:  # noqa: BLE001
+        return "unavailable", f"未安裝 opencv（{e}）"
+    ver = getattr(cv2, "__version__", "?")
+    if not hasattr(cv2, "CascadeClassifier"):
+        return "incompatible", (
+            f"opencv {ver} 沒有 CascadeClassifier——OpenCV 5.0 移除了 Haar 級聯 API。"
+            f"請降到 4.x：pip install 'opencv-python-headless>=4.5,<5'")
+    if not _haar_dir(cv2):
+        return "incompatible", f"opencv {ver} 找不到 haarcascades 目錄"
+    return "ok", f"opencv {ver}"
 
 
 def _face_looks_like_skin(arr, box):
@@ -179,10 +216,17 @@ def detect_face(image_path):
     arr = np.asarray(Image.open(image_path).convert("RGB")).astype(np.float32)
 
     min_side = max(24, int(H * FACE_MIN_FRAC))
+    haar = _haar_dir(cv2)
     raw = []
     for name in ("haarcascade_frontalface_default.xml",
                  "haarcascade_frontalface_alt2.xml"):
-        d = cv2.CascadeClassifier(cv2.data.haarcascades + name)
+        path = os.path.join(haar, name)
+        if not os.path.exists(path):
+            continue
+        try:
+            d = cv2.CascadeClassifier(path)
+        except Exception:  # noqa: BLE001
+            continue
         if d.empty():
             continue
         for (x, y, w, h) in d.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5,
